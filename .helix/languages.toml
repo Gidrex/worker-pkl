@@ -1,0 +1,42 @@
+# Languages
+[[language]]
+name = "toml"
+auto-format = true
+language-servers = ["tombi"]
+
+[[language]]
+name = "python"
+auto-format = true
+language-servers = ["ruff", "jedi"]
+formatter = { command = "ruff", args = ["format", "--stdin-filename", "file.py", "-"] }
+
+[[language]]
+name = "yaml"
+auto-format = true
+language-servers = ["yaml-language-server"]
+
+[[language]]
+name = "json"
+auto-format = true
+language-servers = ["vscode-json-language-server"]
+
+# Language Servers
+[language-server.ruff]
+command = "ruff"
+args = ["server", "--preview"]
+
+[language-server.jedi]
+command = "jedi-language-server"
+
+[language-server.tombi]
+command = "tombi"
+args = ["--stdio"]
+
+[language-server.yaml-language-server]
+command = "yaml-language-server"
+args = ["--stdio"]
+
+[language-server.vscode-json-language-server]
+command = "vscode-json-language-server"
+args = ["--stdio"]
+
