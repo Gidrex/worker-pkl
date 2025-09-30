@@ -7,9 +7,11 @@ name = "worker-pkl"
 version = "0.1.0"
 description = "Smart parking detection system"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
 # добавляйте зависимости сюда
+  "uvicorn[standard]>=0.24.0",
+  "fastapi>=0.104.0",
 ]
 
 [dependency-groups]
