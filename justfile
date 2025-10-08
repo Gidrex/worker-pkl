@@ -5,7 +5,7 @@ _default:
     @just --list
 
 # Install and synchronize project dependencies using uv
-prepare:
+sync:
     uv sync
 
 # Execute the main application entry point
@@ -13,8 +13,12 @@ run:
     uv run main.py
 
 # Run ruff linter to check code style and quality
-lint *args:
-    uv run ruff check {{ args }} .
+lint:
+    uv run ruff check .
+
+# Run ruff linter to check code style and quality
+lint-fix:
+    uv run ruff check --fix .
 
 # Auto-format code using ruff formatter
 format:
