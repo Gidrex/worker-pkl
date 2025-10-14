@@ -1,0 +1,24 @@
+services:
+  dataset-prep:
+    build:
+      context: .
+      target: base
+    image: worker-pkl:dataset
+    container_name: worker-pkl-dataset
+    command: uv run scripts/prepare_dataset.py
+    volumes:
+      - ./videos:/app/videos:ro
+      - ./datasets:/app/datasets
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 6G
+        reservations:
+          cpus: '2.0'
+          memory: 3G
+    shm_size: '2gb'
+    environment:
+      - OMP_NUM_THREADS=4
+      - CUDA_VISIBLE_DEVICES=""
+    restart: "no"
