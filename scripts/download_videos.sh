@@ -156,4 +156,4 @@ main() {
     info "Next step: uv run scripts/prepare_dataset.py"
 }
 
-main "$@"
+time main "$@"
