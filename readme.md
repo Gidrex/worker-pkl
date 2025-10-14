@@ -12,9 +12,6 @@ Vehicle tracking system for detecting parked/moving cars using YOLOv9 and comput
 - REST API for training and detection
 - Optimized for RTX 3060 Laptop (6GB VRAM)
 
-## Quick Start
-
-
 ## Documentation
 
 - [**Usage Guide**](docs/usage.md) - Complete workflow and API reference
