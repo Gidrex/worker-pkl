@@ -108,36 +108,43 @@ main() {
     success "Using download tool: $download_tool"
     echo ""
 
-    # Video URLs
-    local urls=(
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП1 p1.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП1 p2.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП1 p3.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП1 p4.avi"
+    # S3 bucket
+    local bucket_url="https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos"
+    local video_names=(
+        "КПП1 p1.avi"
+        "КПП1 p2.avi"
+        "КПП1 p3.avi"
+        "КПП1 p4.avi"
 
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП1 рамки p1.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП1 рамки p2.avi"
+        "КПП1 рамки p1.avi"
+        "КПП1 рамки p2.avi"
 
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП2 рамки p1.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП2 рамки p2.avi"
+        "КПП2 рамки p1.avi"
+        "КПП2 рамки p2.avi"
 
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП3 p1.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП3 p2.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП3 p3.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП3 p4.avi"
+        "КПП3 p1.avi"
+        "КПП3 p2.avi"
+        "КПП3 p3.avi"
+        "КПП3 p4.avi"
 
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП3 рамки p1.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП3 рамки p2.avi"
-    "https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos/КПП3 ТН.avi"
+        "КПП3 рамки p1.avi"
+        "КПП3 рамки p2.avi"
+        "КПП3 ТН.avi"
     )
 
-    local total=${#urls[@]}
+    # Build full URLs
+    local urls=()
+    for file in "${video_names[@]}"; do
+        urls+=("$bucket_url/$file")
+    done
+
+    local urls_count=${#urls[@]}
     local current=0
 
     for url in "${urls[@]}"; do
         current=$((current + 1))
         echo ""
-        info "Progress: $current/$total"
+        info "Progress: $current/$urls_count"
         download_video "$url" "$download_tool"
     done
 
