@@ -111,25 +111,25 @@ main() {
     # S3 bucket
     local bucket_url="https://s3.ru1.storage.beget.cloud/6f4bfe74eb13-pkl-videos"
     local video_names=(
-        "КПП1 p1.avi"
-        "КПП1 p2.avi"
-        "КПП1 p3.avi"
-        "КПП1 p4.avi"
+        "КПП1_p1.avi"
+        "КПП1_p2.avi"
+        "КПП1_p3.avi"
+        "КПП1_p4.avi"
 
-        "КПП1 рамки p1.avi"
-        "КПП1 рамки p2.avi"
+        "КПП1_рамки p1.avi"
+        "КПП1_рамки p2.avi"
 
-        "КПП2 рамки p1.avi"
-        "КПП2 рамки p2.avi"
+        "КПП2_рамки p1.avi"
+        "КПП2_рамки p2.avi"
 
-        "КПП3 p1.avi"
-        "КПП3 p2.avi"
-        "КПП3 p3.avi"
-        "КПП3 p4.avi"
+        "КПП3_p1.avi"
+        "КПП3_p2.avi"
+        "КПП3_p3.avi"
+        "КПП3_p4.avi"
 
-        "КПП3 рамки p1.avi"
-        "КПП3 рамки p2.avi"
-        "КПП3 ТН.avi"
+        "КПП3_рамки p1.avi"
+        "КПП3_рамки p2.avi"
+        "КПП3_ТН.avi"
     )
 
     # Build full URLs
