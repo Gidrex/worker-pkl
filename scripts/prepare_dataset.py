@@ -3,274 +3,247 @@
 Extracts frames from videos and prepares YOLOv9 format dataset.
 Uses pretrained COCO model for initial auto-labeling.
 """
-
-from pathlib import Path
-
-import cv2
 from ultralytics import YOLO
+from pathlib import Path
+import cv2
+from colorsys import hsv_to_rgb
 
 
 class DatasetPreparator:
     """Prepare training dataset from local videos.
-
-    Linus principle: Simple pipeline.
     1. Extract frames
-    2. Auto-label with pretrained model
-    3. Split train/val
+    2. Split train/val
     """
 
-    def __init__(
-        self,
-        output_dir: str = "./datasets/parking_vehicles",
-        pretrained_model: str = "yolov9c.pt",
-        use_cpu: bool = False,
-    ):
+    def __init__(self, output_dir: Path = "../datasets/parking_vehicles"):
         """
         Initialize dataset preparator.
-
         Args:
             output_dir: Output directory for dataset
-            pretrained_model: Pretrained model for auto-labeling
-            use_cpu: Force CPU usage (prevents crashes on laptops)
         """
         self.output_dir = Path(output_dir)
-        self.use_cpu = use_cpu
-        self.model = YOLO(pretrained_model)
 
-        if use_cpu:
-            print("Using CPU mode (slower but safer for laptops)")
+        self.train_dir = self.output_dir/"train"
+        self.val_dir = self.output_dir/"val"
 
-        self.images_train_dir = self.output_dir / "images" / "train"
-        self.images_val_dir = self.output_dir / "images" / "val"
-        self.labels_train_dir = self.output_dir / "labels" / "train"
-        self.labels_val_dir = self.output_dir / "labels" / "val"
+        self.supported_video_extensions = {".mp4", ".avi", ".mov", ".mkv", ".flv"}
+        self.supported_image_extentions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff"}
 
-    def prepare_from_videos(
-        self,
-        video_paths: list[str],
-        frame_skip: int = 30,
-        val_split: float = 0.2,
-        conf_threshold: float = 0.3,
-    ) -> None:
-        """
-        Prepare dataset from multiple videos.
+        #self.model = YOLO("yolov9c.pt")
+        #self.model = YOLO("./yolo12x.pt")
+        self.model = YOLO("../models/yolov10_run1/weights/best.pt")
 
-        Args:
-            video_paths: List of video file paths
-            frame_skip: Extract every Nth frame
-            val_split: Validation split ratio
-            conf_threshold: Confidence threshold for auto-labeling
-        """
-        print("=" * 80)
-        print("DATASET PREPARATION")
-        print("=" * 80)
+        self.vehicle_classes = {2: 0, 3: 1, 5: 2, 7: 3}
+        self.vehicle_classes_inv = {0: 2, 1: 3, 2: 5, 3: 7}
 
-        self._create_directories()
-
-        all_frames = []
-
-        for video_path in video_paths:
-            frames = self._extract_frames(video_path, frame_skip)
-            all_frames.extend(frames)
-
-        print(f"\nTotal frames extracted: {len(all_frames)}")
-
-        val_count = int(len(all_frames) * val_split)
-        train_count = len(all_frames) - val_count
-
-        print(f"Train frames: {train_count}")
-        print(f"Val frames: {val_count}")
-
-        train_frames = all_frames[:train_count]
-        val_frames = all_frames[train_count:]
-
-        print("\nAuto-labeling train frames...")
-        self._label_frames(
-            train_frames, self.images_train_dir, self.labels_train_dir, conf_threshold
-        )
-
-        print("\nAuto-labeling val frames...")
-        self._label_frames(
-            val_frames, self.images_val_dir, self.labels_val_dir, conf_threshold
-        )
-
-        self._create_dataset_yaml()
-
-        print("\n" + "=" * 80)
-        print("DATASET PREPARATION COMPLETE")
-        print("=" * 80)
-        print(f"\nDataset location: {self.output_dir}")
-        print(f"Dataset YAML: {self.output_dir / 'dataset.yaml'}")
-        print("\nNext steps:")
-        print("1. Review auto-labeled data")
-        print("2. Manually correct labels if needed")
-        print("3. Run training script")
-
-    def _create_directories(self) -> None:
+    def create_directories(self) -> None:
         """Create dataset directory structure."""
         for dir_path in [
-            self.images_train_dir,
-            self.images_val_dir,
-            self.labels_train_dir,
-            self.labels_val_dir,
-        ]:
+            self.train_dir/"images",
+            self.train_dir/"labels",
+            self.val_dir/"images",
+            self.val_dir/"labels",
+            self.output_dir/"visual"
+            ]:
             dir_path.mkdir(parents=True, exist_ok=True)
 
-        print("Created dataset directories")
 
-    def _extract_frames(self, video_path: str, frame_skip: int) -> list[dict]:
+    def process_videos(self, video_dir: Path, frame_interval: int = 30) -> None:
+        """
+        Process all video files in a given folder.
+        Args:
+            folder_path (Path): Path to the folder containing video files
+            output_folder (Path): Directory where all frames will be saved
+        Returns:
+            dict: Dictionary mapping video filenames to number of frames extracted
+        """
+        # Ensure input directory exists
+        if not video_dir.exists():
+            raise FileNotFoundError(f"Input directory does not exist: {video_dir}")
+    
+        # Get list of video files
+        video_files = [
+            f for f in video_dir.iterdir()
+            if f.is_file() and f.suffix.lower() in self.supported_video_extensions
+        ]
+    
+        # Process each video file
+        for video_path in video_files:
+            try:
+                filename, frames_extracted = self._extract_frames(video_path=video_path, frame_interval=frame_interval)
+                print(f"Processed {filename}: Extracted {frames_extracted} frames")
+            except Exception as e:
+                print(f"Error processing {filename}: {str(e)}")
+
+    def _extract_frames(self, video_path: Path, frame_interval: int = 30) -> (str, int):
         """Extract frames from video."""
-        video_path_obj = Path(video_path)
-        if not video_path_obj.exists():
-            print(f"Warning: Video not found: {video_path}")
-            return []
+
+        if not video_path.exists():
+            raise IOError(f"Error: Video not found: {video_path}")
 
         print(f"\nExtracting frames from: {video_path}")
 
         cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise IOError(f"Error: opening video file: {video_path}")
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        frames = []
-        frame_idx = 0
-
-        while cap.isOpened():
+        for frame_idx in range(0, total_frames, frame_interval):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
             ret, frame = cap.read()
             if not ret:
                 break
 
-            if frame_idx % frame_skip == 0:
-                frame_name = f"{video_path_obj.stem}_frame_{frame_idx:06d}.jpg"
-                frames.append({"name": frame_name, "data": frame})
+            filename = f"{video_path.stem}_frame_{frame_idx:06d}.jpg"
+            filepath = self.train_dir/"images"/filename
 
-            frame_idx += 1
+            cv2.imwrite(str(filepath), frame)
 
         cap.release()
 
-        print(f"Extracted {len(frames)} frames from {total_frames} total")
+        return video_path.name, total_frames // frame_interval
 
-        return frames
-
-    def _label_frames(
-        self,
-        frames: list[dict],
-        images_dir: Path,
-        labels_dir: Path,
-        conf_threshold: float,
-    ) -> None:
-        """Auto-label frames using pretrained model."""
-        vehicle_classes = {2: 0, 3: 1, 5: 2, 7: 3}
-
-        for idx, frame_data in enumerate(frames):
-            frame_name = frame_data["name"]
-            frame = frame_data["data"]
-
-            image_path = images_dir / frame_name
-            cv2.imwrite(str(image_path), frame)
-
-            results = self.model.predict(
-                source=frame,
-                conf=conf_threshold,
-                device=0,
-                classes=list(vehicle_classes.keys()),
-                verbose=False,
-            )
-
-            label_path = labels_dir / f"{Path(frame_name).stem}.txt"
-
-            with open(label_path, "w") as f:
-                if results[0].boxes is not None and len(results[0].boxes) > 0:
-                    boxes = results[0].boxes.cpu().numpy()
-
-                    for box in boxes:
-                        cls_id = int(box.cls[0])
-                        x1, y1, x2, y2 = box.xyxy[0].tolist()
-
-                        img_h, img_w = frame.shape[:2]
-                        x_center = ((x1 + x2) / 2) / img_w
-                        y_center = ((y1 + y2) / 2) / img_h
-                        width = (x2 - x1) / img_w
-                        height = (y2 - y1) / img_h
-
-                        yolo_class = vehicle_classes[cls_id]
-
-                        f.write(
-                            f"{yolo_class} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n"
-                        )
-
-            if (idx + 1) % 50 == 0:
-                print(f"Labeled {idx + 1}/{len(frames)} frames")
-
-        print(f"Labeled {len(frames)} frames")
-
-    def _create_dataset_yaml(self) -> None:
+    def create_dataset_yaml(self) -> None:
         """Create dataset.yaml configuration file."""
         yaml_content = f"""path: {self.output_dir.absolute()}
-train: images/train
-val: images/val
+train: {self.train_dir}/images
+val: {self.val_dir}/images
+    
+nc: 4
 
-names:
-  0: car
-  1: motorcycle
-  2: bus
-  3: truck
+names: ["car", "motorcycle", "bus", "truck"]
 """
 
-        yaml_path = self.output_dir / "dataset.yaml"
+        yaml_path = self.output_dir/"dataset.yaml"
         with open(yaml_path, "w") as f:
             f.write(yaml_content)
 
         print(f"Created dataset.yaml: {yaml_path}")
 
+        classes_content = f"car\nmotorcycle\nbus\ntruck"
+        classes_path = self.output_dir/"classes.txt"
+        with open(classes_path, "w") as f:
+            f.write(classes_content)
+        print(f"Created classes.txt: {classes_path}")
+
+    def label_frames(self, conf_threshold: float = 0.15) -> None:
+        """Auto-label frames using pretrained model."""
+        images_dir: Path = self.train_dir/"images"
+        labels_dir: Path = self.train_dir/"labels"
+
+        directory_path = images_dir.resolve()
+        if not directory_path.exists():
+            raise ValueError(f"Not a valid directory: {directory_path}")
+        if not directory_path.is_dir():
+            raise ValueError(f"Not a directory: {directory_path}")
+
+        print("Starting labeling...")
+        for img_path in directory_path.iterdir():
+            try:
+                img = cv2.imread(str(img_path))
+                if img is not None:
+                    results = self.model.predict(source=img, conf=conf_threshold, device=0, classes=list(self.vehicle_classes.keys()), verbose=False)
+                    label_path = labels_dir / f"{img_path.stem}.txt"
+                    with open(label_path, "w") as f:
+                        if results[0].boxes is not None and len(results[0].boxes) > 0:
+                            boxes = results[0].boxes.cpu().numpy()
+                            for box in boxes:
+                                cls_id = int(box.cls[0])
+                                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                                img_h, img_w = img.shape[:2]
+                                x_center = ((x1 + x2) / 2) / img_w
+                                y_center = ((y1 + y2) / 2) / img_h
+                                width = (x2 - x1) / img_w
+                                height = (y2 - y1) / img_h
+                                yolo_class = self.vehicle_classes[cls_id]
+                                f.write(f"{yolo_class} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n")
+                else:
+                    print(f"Warning: Could not read image {img_path.name}")
+            except Exception as e:
+                print(f"Error reading {img_path.name}: {str(e)}")
+        print("Labeling images complete")
+
+    def display_lables(self, directory_path: Path) -> None:
+        directory_path = directory_path.resolve()
+        if not directory_path.exists():
+            raise ValueError(f"Not a valid directory: {directory_path}")
+        if not directory_path.is_dir():
+            raise ValueError(f"Not a directory: {directory_path}")
+    
+        for frame_path in (self.train_dir/"images").iterdir():
+            if frame_path.suffix.lower() in self.supported_image_extentions:
+                filename = f"{frame_path.stem}.txt"
+                try:
+                    frame = cv2.imread(str(frame_path))
+                    if frame is not None:
+                        try:
+                            with open(self.train_dir/"labels"/filename, 'r') as file:
+                                # Read all lines and strip whitespace
+                                data = [line.split() for line in [line.strip() for line in file if line.strip()]]
+                                idx = 0
+                                for obj in data:
+                                    img_h, img_w = frame.shape[:2]
+                                    cls_id = self.vehicle_classes_inv[int(obj[0])]
+                                    x_center, y_center, width, height = [float(x) for x in obj[1:]]
+                                    x1 = int((x_center - (width / 2)) * img_w)
+                                    x2 = int((x_center + (width / 2)) * img_w)
+                                    y1 = int((y_center + (height / 2)) * img_h)
+                                    y2 = int((y_center - (height / 2)) * img_h)
+                                    cv2.rectangle(frame, (x1, y1), (x2, y2), tuple(x*255 for x in hsv_to_rgb(idx/len(data) + 0.5*(idx%2), 1.0, 1.0)), 3)
+                                    #cv2.rectangle(frame, (x1, y1), (x2, y2), colors[i], 3)
+                                    #cvzone.putTextRect(frame, f'{cls_id}', [x1 + 8, y1 - 12], thickness=2, scale=1.5)
+    
+                                    filepath = self.output_dir/"visual"/frame_path.name
+                                    cv2.imwrite(str(filepath), frame)
+                                    idx += 1
+                                
+                        except FileNotFoundError:
+                            print(f"Error: File '{filename}' not found")
+                        except Exception as e:
+                            print(f"Error reading {self.train_dir/"labels"/filename}: {str(e)}")
+                    else:
+                        print(f"Warning: Could not read image {frame_path.name}")
+                except Exception as e:
+                    print(f"Error reading {frame_path.name}: {str(e)}")
+
 
 def main():
     """Run dataset preparation."""
-    videos_dir = Path("./videos")
+    videos_dir = Path("../videos")
+    output_dir = Path("../datasets/parking_vehicles")
+    visual_dir = Path("../datasets/parking_vehicles")
 
-    print("=" * 80)
+
     print("VIDEO DATASET PREPARATION")
-    print("=" * 80)
-    print("\nThis script will:")
-    print("1. Extract frames from your videos")
-    print("2. Auto-label vehicles using pretrained COCO model")
-    print("3. Create YOLOv9 training dataset")
-    print("\nScanning ./videos/ directory for all video files...")
-    print("=" * 80)
 
     if not videos_dir.exists():
-        print("\nError: ./videos/ directory not found!")
-        print("Please create ./videos/ and place your videos there")
+        print("\nError: ../videos/ directory not found!")
+        print("Please create ../videos/ and place your videos there")
         return
 
-    video_extensions = {".mp4", ".avi", ".mov", ".mkv", ".flv"}
-    video_paths = [
-        str(vp)
-        for vp in videos_dir.iterdir()
-        if vp.is_file() and vp.suffix.lower() in video_extensions
-    ]
-
-    if not video_paths:
-        print("\nNo videos found in ./videos/")
-        print(f"Supported formats: {', '.join(video_extensions)}")
-        print("Please place your videos in ./videos/ directory")
-        return
-
-    print(f"\nFound {len(video_paths)} videos:")
-    for vp in video_paths:
-        print(f"  - {vp}")
-
-    preparator = DatasetPreparator(
-        output_dir="./datasets/parking_vehicles", pretrained_model="yolov9c.pt"
-    )
+    preparator = DatasetPreparator(output_dir="../datasets/parking_vehicles")
 
     print("\nStarting preparation...")
+    
+    preparator.create_directories()
+    print("Created dataset directories")
+    
+    if input(":: Extract frames from videos? [Y/n] ")[0].lower() == 'y':
+        preparator.process_videos(video_dir=videos_dir, frame_interval=int(input("Frame interval: ")))
+        print("Finished")
 
-    preparator.prepare_from_videos(
-        video_paths=video_paths,
-        frame_skip=30,
-        val_split=0.2,
-        conf_threshold=0.3,
-    )
+    if input(":: Create dataset yaml and classes file? [Y/n] ")[0].lower() == 'y':
+        preparator.create_dataset_yaml()
+        print("Finished")
 
+    if input(":: Auto label images? [Y/n] ")[0].lower() == 'y':
+        preparator.label_frames()
+
+    if input(":: Display bounding boxes? [Y/n] ")[0].lower() == 'y':
+        preparator.display_lables(directory_path=visual_dir)
+        print(f"Finished. Displayed images are located at: {visual_dir}/visual/")
+
+    print("Dataset preparation comlete")
 
 if __name__ == "__main__":
     main()
