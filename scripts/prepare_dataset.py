@@ -30,8 +30,8 @@ class DatasetPreparator:
         self.supported_image_extentions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff"}
 
         #self.model = YOLO("yolov9c.pt")
-        #self.model = YOLO("./yolo12x.pt")
-        self.model = YOLO("../models/yolov10_run1/weights/best.pt")
+        self.model = YOLO("../models/yolo12x.pt")
+        #self.model = YOLO("../models/yolov10_run1/weights/best.pt")
 
         self.vehicle_classes = {2: 0, 3: 1, 5: 2, 7: 3}
         self.vehicle_classes_inv = {0: 2, 1: 3, 2: 5, 3: 7}
