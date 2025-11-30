@@ -45,22 +45,6 @@ execute_download() {
     local filename="$2"
     local tool="$3"
 
-    if [[ "$tool" == "aria2c" ]]; then
-        aria2c \
-            -x 16 \
-            -s 16 \
-            -k 1M \
-            -j 5 \
-            --file-allocation=none \
-            --max-connection-per-server=16 \
-            --min-split-size=1M \
-            --split=16 \
-            --dir="./videos" \
-            --out="$filename" \
-            "$url" || error "Failed to download: $filename"
-        return
-    fi
-
     if [[ "$tool" == "wget" ]]; then
         wget -O "./videos/$filename" "$url" || error "Failed to download: $filename"
         return
@@ -72,7 +56,7 @@ execute_download() {
     fi
 }
 
-# Download file
+# Download file (for wget/curl)
 download_video() {
     local url="$1"
     local tool="$2"
@@ -95,7 +79,57 @@ download_video() {
     success "Downloaded: $filename"
 }
 
-# Main
+# Download all files with aria2c in parallel
+download_with_aria2c() {
+    local urls=("$@")
+    local input_file="./videos/.aria2c_urls.txt"
+
+    mkdir -p ./videos
+
+    # Create input file for aria2c
+    : > "$input_file"
+    for url in "${urls[@]}"; do
+        local filename
+        filename=$(basename "$url" | sed 's/%20/ /g')
+
+        # Skip if file already exists
+        if [[ -f "./videos/$filename" ]]; then
+            info "File already exists, skipping: $filename"
+            continue
+        fi
+
+        # Add URL and output filename
+        echo "$url" >> "$input_file"
+        echo "  out=$filename" >> "$input_file"
+    done
+
+    # Check if there are files to download
+    if [[ ! -s "$input_file" ]]; then
+        info "All files already downloaded"
+        rm -f "$input_file"
+        return 0
+    fi
+
+    info "Starting parallel downloads with aria2c"
+
+    # Download all files in parallel
+    aria2c \
+        -x 16 \
+        -s 16 \
+        -k 1M \
+        -j 15 \
+        --file-allocation=none \
+        --max-connection-per-server=16 \
+        --min-split-size=1M \
+        --split=16 \
+        --dir="./videos" \
+        --input-file="$input_file" || error "Failed to download files"
+
+    # Cleanup
+    rm -f "$input_file"
+    success "All downloads completed with aria2c"
+}
+
 main() {
     echo "=========================================="
     echo "Video Downloader for Worker-PKL"
@@ -138,8 +172,22 @@ main() {
     done
 
     local urls_count=${#urls[@]}
-    local current=0
 
+    # Use parallel download for aria2c
+    if [[ "$download_tool" == "aria2c" ]]; then
+        echo ""
+        download_with_aria2c "${urls[@]}"
+        echo ""
+        echo "=========================================="
+        success "All downloads completed!"
+        echo "=========================================="
+        info "Videos saved to: ./videos/"
+        info "Next step: uv run scripts/prepare_dataset.py"
+        return
+    fi
+
+    # Sequential download for wget/curl
+    local current=0
     for url in "${urls[@]}"; do
         current=$((current + 1))
         echo ""
