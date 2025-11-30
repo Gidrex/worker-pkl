@@ -206,7 +206,7 @@ class FrameProcessor:
 
         if self.save_frames and len(tracks) > 0:
             save_start = time.time()
-            self._save_frame_with_boxes(frame, tracks, frame_idx, video_name)
+            self._save_frame_with_boxes(frame, tracks, frame_idx, video_name, timestamp)
             save_time = time.time() - save_start
             logger.debug(f"Frame {frame_idx}: saved with boxes in {save_time:.3f}s")
 
@@ -216,6 +216,7 @@ class FrameProcessor:
         tracks: list,
         frame_idx: int,
         video_name: str,
+        timestamp: datetime,
     ) -> None:
         """Save frame with bounding boxes.
 
@@ -224,6 +225,7 @@ class FrameProcessor:
             tracks: List of tracks
             frame_idx: Frame index
             video_name: Video name
+            timestamp: Frame timestamp
         """
         frame_copy = frame.copy()
 
@@ -249,7 +251,10 @@ class FrameProcessor:
                 2,
             )
 
-        output_path = self.frames_dir / f"{video_name}_frame_{frame_idx:06d}.jpg"
+        timestamp_str = timestamp.strftime("%d%m%Y_%H%M%S")
+        output_path = (
+            self.frames_dir / f"{video_name}_{timestamp_str}_frame_{frame_idx:06d}.jpg"
+        )
         cv2.imwrite(str(output_path), frame_copy)
 
     def _save_vehicles_to_db(self, video_id: int, vehicle_db_mapping: dict) -> None:
