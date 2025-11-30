@@ -1,7 +1,0 @@
-path: /home/vix/worker-pkl/scripts/../datasets/parking_vehicles
-train: ../datasets/parking_vehicles/train/images
-val: ../datasets/parking_vehicles/val/images
-
-nc: 4
-
-names: ["car", "motorcycle", "bus", "truck"]
