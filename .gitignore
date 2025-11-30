@@ -172,3 +172,4 @@ datasets/parking_vehicles/visual
 
 # Keep model directory
 !models/.gitkeep
+*.pt
