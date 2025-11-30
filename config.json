@@ -1,13 +1,13 @@
 {
   "logging": {
-    "level": "DEBUG",
+    "level": "INFO",
     "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
     "rotation": "100 MB"
   },
   "model": {
     "path": "yolo12x.pt",
     "device": "cuda:0",
-    "conf_threshold": 0.3,
+    "conf_threshold": 0.2,
     "classes": [
       2,
       3,
@@ -22,7 +22,7 @@
   },
   "tracking": {
     "tracker": "botsort.yaml",
-    "min_hits": 5,
+    "min_hits": 2,
     "max_age": 30
   },
   "parking": {
