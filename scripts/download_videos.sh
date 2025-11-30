@@ -182,7 +182,6 @@ main() {
         success "All downloads completed!"
         echo "=========================================="
         info "Videos saved to: ./videos/"
-        info "Next step: uv run scripts/prepare_dataset.py"
         return
     fi
 
