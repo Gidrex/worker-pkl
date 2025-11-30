@@ -169,7 +169,7 @@ videos/
 *.db-journal
 datasets/parking_vehicles/train
 datasets/parking_vehicles/visual
+*.pt
 
 # Keep model directory
 !models/.gitkeep
-*.pt
