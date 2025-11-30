@@ -16,19 +16,19 @@
     ]
   },
   "processing": {
-    "frame_interval": 3,
-    "batch_size": 8,
+    "frame_interval": 2,
+    "batch_size": 4,
     "max_workers": 4
   },
   "tracking": {
-    "tracker": "bytetrack",
-    "min_hits": 3,
+    "tracker": "botsort.yaml",
+    "min_hits": 5,
     "max_age": 30
   },
   "parking": {
-    "iou_threshold": 0.5,
+    "iou_threshold": 0.4,
     "centroid_threshold": 20.0,
-    "stationary_frames": 10
+    "stationary_frames": 5
   },
   "storage": {
     "database_path": "./data/parking.db",
