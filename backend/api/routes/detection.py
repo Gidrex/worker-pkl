@@ -3,9 +3,8 @@
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-
 from models.yolov9 import YOLOv9Detector
+from pydantic import BaseModel
 
 router = APIRouter()
 
