@@ -10,7 +10,7 @@ from loguru import logger
 
 from core.detector import VehicleDetector
 from core.parking_analyzer import ParkingAnalyzer
-from core.tracker import VehicleTracker
+from core.tracker import Track, VehicleTracker
 from storage.database import Database
 from utils.config import Config
 
@@ -40,10 +40,15 @@ class FrameProcessor:
         elapsed = time.time() - start
         logger.info(f"Model loaded in {elapsed:.2f}s")
 
-        self.tracker = VehicleTracker(
-            min_hits=config.tracking.min_hits,
-            max_age=config.tracking.max_age,
-        )
+        valid_trackers = ["bytetrack.yaml", "botsort.yaml"]
+        self.use_builtin_tracker = config.tracking.tracker in valid_trackers
+        self.tracker_type = config.tracking.tracker
+
+        if not self.use_builtin_tracker:
+            self.tracker = VehicleTracker(
+                min_hits=config.tracking.min_hits,
+                max_age=config.tracking.max_age,
+            )
 
         self.parking_analyzer = ParkingAnalyzer(
             iou_threshold=config.parking.iou_threshold,
@@ -156,21 +161,41 @@ class FrameProcessor:
             vehicle_db_mapping: Mapping of track_id to vehicle_id
             video_id: Video database ID
         """
-        detect_start = time.time()
-        detections = self.detector.detect(frame)
-        detect_time = time.time() - detect_start
+        if self.use_builtin_tracker:
+            track_start = time.time()
+            detections = self.detector.track(frame, tracker=self.tracker_type)
+            track_time = time.time() - track_start
 
-        logger.debug(
-            f"Frame {frame_idx}: detected {len(detections)} vehicles in {detect_time:.3f}s"
-        )
+            logger.debug(
+                f"Frame {frame_idx}: detected+tracked {len(detections)} vehicles in {track_time:.3f}s"
+            )
 
-        track_start = time.time()
-        tracks = self.tracker.update(detections, frame_idx)
-        track_time = time.time() - track_start
+            tracks = [
+                Track(
+                    track_id=det.track_id,
+                    bbox=det.bbox,
+                    class_id=det.class_id,
+                    confidence=det.confidence,
+                )
+                for det in detections
+                if det.track_id is not None
+            ]
+        else:
+            detect_start = time.time()
+            detections = self.detector.detect(frame)
+            detect_time = time.time() - detect_start
 
-        logger.debug(
-            f"Frame {frame_idx}: tracked {len(tracks)} vehicles in {track_time:.3f}s"
-        )
+            logger.debug(
+                f"Frame {frame_idx}: detected {len(detections)} vehicles in {detect_time:.3f}s"
+            )
+
+            track_start = time.time()
+            tracks = self.tracker.update(detections, frame_idx)
+            track_time = time.time() - track_start
+
+            logger.debug(
+                f"Frame {frame_idx}: tracked {len(tracks)} vehicles in {track_time:.3f}s"
+            )
 
         status_changes = self.parking_analyzer.update(tracks, frame_idx, timestamp)
 

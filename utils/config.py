@@ -4,7 +4,7 @@ import json
 import sys
 from pathlib import Path
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field
 
 
 class LoggingConfig(BaseModel):
@@ -35,7 +35,10 @@ class ProcessingConfig(BaseModel):
 class TrackingConfig(BaseModel):
     """Vehicle tracking configuration."""
 
-    tracker: str = Field(default="bytetrack", pattern="^(bytetrack|botsort|deepsort)$")
+    tracker: str = Field(
+        default="bytetrack.yaml",
+        pattern="^(bytetrack|botsort|bytetrack\\.yaml|botsort\\.yaml)$",
+    )
     min_hits: int = Field(default=3, ge=1)
     max_age: int = Field(default=30, ge=1)
 
@@ -74,7 +77,6 @@ class Config(BaseModel):
     parking: ParkingConfig = Field(default_factory=ParkingConfig)
     storage: StorageConfig = Field(default_factory=StorageConfig)
     api: APIConfig = Field(default_factory=APIConfig)
-
 
 
 def load_config(config_path: str = "config.json") -> Config:

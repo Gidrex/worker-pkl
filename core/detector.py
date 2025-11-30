@@ -15,6 +15,7 @@ class Detection:
     bbox: tuple[float, float, float, float]
     class_id: int
     confidence: float
+    track_id: int | None = None
 
 
 class VehicleDetector:
@@ -42,7 +43,9 @@ class VehicleDetector:
 
         model_file = Path(model_path)
         if not model_file.exists():
-            logger.warning(f"Model file not found locally, ultralytics will download: {model_path}")
+            logger.warning(
+                f"Model file not found locally, ultralytics will download: {model_path}"
+            )
 
         self.model = YOLO(model_path)
         self.device = device
@@ -86,6 +89,52 @@ class VehicleDetector:
                     confidence=confidence,
                 )
             )
+
+        return detections
+
+    def track(self, frame: np.ndarray, tracker: str = "bytetrack") -> list[Detection]:
+        """Run detection with tracking on single frame.
+
+        Args:
+            frame: Input frame (BGR format)
+            tracker: Tracker type (bytetrack, botsort)
+
+        Returns:
+            List of detections with track IDs
+        """
+        results = self.model.track(
+            source=frame,
+            conf=self.conf_threshold,
+            device=self.device,
+            classes=self.classes,
+            tracker=tracker,
+            verbose=False,
+            persist=True,
+        )
+
+        if not results or results[0].boxes is None:
+            return []
+
+        detections = []
+        boxes = results[0].boxes.cpu().numpy()
+
+        for box in boxes:
+            if not hasattr(box, "id") or box.id is None:
+                continue
+
+            track_id = int(box.id[0])
+            class_id = int(box.cls[0])
+            confidence = float(box.conf[0])
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+
+            detections.append(
+                Detection(
+                    bbox=(x1, y1, x2, y2),
+                    class_id=class_id,
+                    confidence=confidence,
+                )
+            )
+            detections[-1].track_id = track_id
 
         return detections
 
