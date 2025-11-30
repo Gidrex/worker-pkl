@@ -1,0 +1,43 @@
+{
+  "logging": {
+    "level": "DEBUG",
+    "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
+    "rotation": "100 MB"
+  },
+  "model": {
+    "path": "yolo12x.pt",
+    "device": "cuda:0",
+    "conf_threshold": 0.3,
+    "classes": [
+      2,
+      3,
+      5,
+      7
+    ]
+  },
+  "processing": {
+    "frame_interval": 3,
+    "batch_size": 8,
+    "max_workers": 4
+  },
+  "tracking": {
+    "tracker": "bytetrack",
+    "min_hits": 3,
+    "max_age": 30
+  },
+  "parking": {
+    "iou_threshold": 0.5,
+    "centroid_threshold": 20.0,
+    "stationary_frames": 10
+  },
+  "storage": {
+    "database_path": "./data/parking.db",
+    "save_frames": true,
+    "frames_dir": "./data/frames"
+  },
+  "api": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8080
+  }
+}
