@@ -160,3 +160,4 @@ cython_debug/
 #.idea/
 videos
 datasets/parking_vehicles/train
+datasets/parking_vehicles/visual
