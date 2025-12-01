@@ -1,13 +1,13 @@
 {
   "logging": {
-    "level": "INFO",
+    "level": "DEBUG",
     "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
     "rotation": "100 MB"
   },
   "model": {
     "path": "yolo12x.pt",
     "device": "cuda:0",
-    "conf_threshold": 0.2,
+    "conf_threshold": 0.08,
     "classes": [
       2,
       3,
@@ -16,7 +16,7 @@
     ]
   },
   "processing": {
-    "frame_interval": 2,
+    "frame_interval": 120,
     "batch_size": 4,
     "max_workers": 4
   },
@@ -26,8 +26,8 @@
     "max_age": 30
   },
   "parking": {
-    "iou_threshold": 0.4,
-    "centroid_threshold": 20.0,
+    "iou_threshold": 0.3,
+    "centroid_threshold": 30.0,
     "stationary_frames": 5
   },
   "storage": {
