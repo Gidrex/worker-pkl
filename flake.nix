@@ -6,7 +6,7 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -15,7 +15,7 @@
         fake-cam-script = pkgs.writeShellScriptBin "fake-cam" ''
           # 1. Start RTSP Server in background
           echo "Starting RTSP Server (mediamtx)..."
-          ${pkgs.mediamtx}/bin/mediamtx > /dev/null 2>&1 &
+          ${pkgs.mediamtx}/bin/mediamtx ./mediamtx.yml > /dev/null 2>&1 &
           SERVER_PID=$!
 
           # Cleanup function (Ctrl+C)
@@ -29,8 +29,13 @@
           sleep 1
 
           # 2. Start stream
-          VIDEO_FILE="./videos/КПП1_p2.avi" 
-
+          if [ -z "$1" ]; then
+            echo "Error: No video file provided."
+            echo "Usage: fake-cam <path_to_video_file>"
+            exit 1
+          fi
+          VIDEO_FILE="$1"
+          
           if [ ! -f "$VIDEO_FILE" ]; then
             echo "Error: Video file $VIDEO_FILE not found!"
             exit 1
@@ -38,7 +43,7 @@
 
           echo "Streaming $VIDEO_FILE to rtsp://localhost:8554/cam1"
           echo "Press Ctrl+C to stop."
-
+          
           ${pkgs.ffmpeg}/bin/ffmpeg \
             -re \
             -stream_loop -1 \
@@ -48,22 +53,28 @@
             rtsp://localhost:8554/cam1
         '';
 
-      in {
+      in
+      {
         devShells.default = pkgs.mkShell {
-          buildInputs = [ pkgs.ffmpeg pkgs.mediamtx fake-cam-script ];
+          buildInputs = [
+            pkgs.ffmpeg
+            pkgs.mediamtx
+            fake-cam-script
+          ];
 
           shellHook = ''
             echo "--------------------------------------------------------"
             echo "RTSP Environment Ready"
-            echo "Tools available: ffmpeg, mediamtx"
+            echo "Tools available: ffmpeg, mediamtx, fake-cam"
             echo ""
             echo "Usage options:"
-            echo "1. Run automated stream:  fake-cam"
+            echo "1. Run automated stream:  fake-cam <path_to_video_file>"
             echo "2. Manual setup:"
-            echo "   - Term 1: mediamtx"
+            echo "   - Term 1: mediamtx ./mediamtx.yml"
             echo "   - Term 2: ffmpeg -re ... -f rtsp rtsp://localhost:8554/cam1"
             echo "--------------------------------------------------------"
           '';
         };
-      });
+      }
+    );
 }
