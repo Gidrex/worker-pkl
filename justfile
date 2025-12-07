@@ -10,7 +10,7 @@ sync:
 
 # Execute the main application entry point
 run VIDEO:
-    uv run main.py process {{VIDEO}}
+    uv run -m src.main process {{VIDEO}}
 
 # Run ruff linter to check code style and quality
 lint:

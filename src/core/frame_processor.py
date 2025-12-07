@@ -8,12 +8,12 @@ import cv2
 import numpy as np
 from loguru import logger
 
-from core.detector import VehicleDetector
-from core.parking_analyzer import ParkingAnalyzer
-from core.reid import VehicleReID
-from core.tracker import Track, VehicleTracker
-from storage.database import Database
-from utils.config import Config
+from src.core.detector import VehicleDetector
+from src.core.parking_analyzer import ParkingAnalyzer
+from src.core.reid import VehicleReID
+from src.core.tracker import Track, VehicleTracker
+from src.storage.database import Database
+from src.utils.config import Config
 
 
 class FrameProcessor:

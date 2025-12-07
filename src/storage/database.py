@@ -7,7 +7,7 @@ from loguru import logger
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from storage.models import Base, ProcessedVideo, State
+from src.storage.models import Base, ProcessedVideo, State
 
 
 class Database:

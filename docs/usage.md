@@ -73,7 +73,7 @@ Inside the nix flake environment, the following tools are available:
 
 *   **Run Analyzer on Stream:**
     ```bash
-    just run rtsp://localhost:8554/cam1
+    uv run src/main.py process rtsp://localhost:8554/cam1
     ```
 
 ### Configuration

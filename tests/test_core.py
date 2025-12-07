@@ -1,5 +1,5 @@
-from core.tracker import VehicleTracker
-from utils.config import ModelConfig
+from src.core.tracker import VehicleTracker
+from src.utils.config import ModelConfig
 
 
 def test_config_no_classes():

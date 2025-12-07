@@ -4,7 +4,7 @@ import sys
 
 from loguru import logger
 
-from utils.config import LoggingConfig
+from src.utils.config import LoggingConfig
 
 
 def setup_logging(config: LoggingConfig) -> None:

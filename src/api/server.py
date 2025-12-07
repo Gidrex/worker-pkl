@@ -8,8 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from pydantic import BaseModel
 
+from src.utils.config import Config, load_config
 from storage.database import Database
-from utils.config import Config, load_config
 
 
 class JSONRPCRequest(BaseModel):

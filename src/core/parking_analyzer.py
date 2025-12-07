@@ -5,7 +5,7 @@ from datetime import datetime
 
 from loguru import logger
 
-from core.tracker import Track
+from src.core.tracker import Track
 
 
 @dataclass

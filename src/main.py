@@ -6,10 +6,10 @@ from pathlib import Path
 
 from loguru import logger
 
-from core.frame_processor import FrameProcessor
-from storage.database import Database
-from utils.config import load_config
-from utils.logging import setup_logging
+from src.core.frame_processor import FrameProcessor
+from src.storage.database import Database
+from src.utils.config import load_config
+from src.utils.logging import setup_logging
 
 
 def process_video_command(args: argparse.Namespace) -> int:
