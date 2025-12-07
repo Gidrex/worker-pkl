@@ -21,7 +21,6 @@ class ModelConfig(BaseModel):
     path: str = "./models/yolo12x.pt"
     device: str = "cuda:0"
     conf_threshold: float = Field(default=0.3, ge=0.0, le=1.0)
-    classes: list[int] = [2, 3, 5, 7]
 
 
 class ProcessingConfig(BaseModel):

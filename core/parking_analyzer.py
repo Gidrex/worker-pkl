@@ -13,7 +13,6 @@ class VehicleState:
     """Vehicle state information."""
 
     track_id: int
-    class_id: int
     status: str
     first_seen: datetime
     last_seen: datetime
@@ -92,7 +91,6 @@ class ParkingAnalyzer:
 
         self.vehicle_states[track.track_id] = VehicleState(
             track_id=track.track_id,
-            class_id=track.class_id,
             status=self.STATUS_MOVING,
             first_seen=timestamp,
             last_seen=timestamp,

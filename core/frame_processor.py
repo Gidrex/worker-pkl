@@ -10,6 +10,7 @@ from loguru import logger
 
 from core.detector import VehicleDetector
 from core.parking_analyzer import ParkingAnalyzer
+from core.reid import VehicleReID
 from core.tracker import Track, VehicleTracker
 from storage.database import Database
 from utils.config import Config
@@ -35,10 +36,13 @@ class FrameProcessor:
             model_path=config.model.path,
             device=config.model.device,
             conf_threshold=config.model.conf_threshold,
-            classes=config.model.classes,
         )
         elapsed = time.time() - start
         logger.info(f"Model loaded in {elapsed:.2f}s")
+
+        # Initialize ReID
+        self.reid = VehicleReID(device=config.model.device)
+        self.vehicle_embeddings = {}  # track_id -> embedding (np.array)
 
         valid_trackers = ["bytetrack.yaml", "botsort.yaml"]
         self.use_builtin_tracker = config.tracking.tracker in valid_trackers
@@ -92,55 +96,61 @@ class FrameProcessor:
             f"Video info: {total_frames} frames, {fps:.2f} FPS, {duration:.2f}s"
         )
 
+        # Create video record immediately
+        video_record = self.database.create_video(
+            filename=video_file.name,
+            total_frames=0,  # Will update later
+            processing_time=0.0,
+        )
+        video_id = video_record.id
+
         start_time = time.time()
         processed_frames = 0
-        vehicle_db_mapping = {}
 
-        for frame_idx in range(0, total_frames, self.frame_interval):
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-            ret, frame = cap.read()
+        try:
+            for frame_idx in range(0, total_frames, self.frame_interval):
+                cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
+                ret, frame = cap.read()
 
-            if not ret:
-                break
+                if not ret:
+                    break
 
-            timestamp = datetime.now() + timedelta(seconds=frame_idx / fps)
+                timestamp = datetime.now() + timedelta(seconds=frame_idx / fps)
 
-            frame_start = time.time()
-            self._process_frame(
-                frame,
-                frame_idx,
-                timestamp,
-                video_file.stem,
-                vehicle_db_mapping,
-                video_id=None,
-            )
-            frame_elapsed = time.time() - frame_start
-
-            processed_frames += 1
-
-            if processed_frames % 100 == 0:
-                logger.debug(
-                    f"Processed {processed_frames} frames, last frame: {frame_elapsed:.3f}s"
+                frame_start = time.time()
+                self._process_frame(
+                    frame,
+                    frame_idx,
+                    timestamp,
+                    video_file.stem,
+                    video_id,
                 )
+                frame_elapsed = time.time() - frame_start
 
-        cap.release()
+                processed_frames += 1
 
-        total_time = time.time() - start_time
-        logger.info(
-            f"Video processing complete: {processed_frames} frames in {total_time:.2f}s"
-        )
+                if processed_frames % 100 == 0:
+                    logger.debug(
+                        f"Processed {processed_frames} frames, last frame: {frame_elapsed:.3f}s"
+                    )
 
-        video_id = self.database.create_video(
-            filename=video_file.name,
-            total_frames=processed_frames,
-            processing_time=total_time,
-        )
+        finally:
+            cap.release()
+            total_time = time.time() - start_time
 
-        self._save_vehicles_to_db(video_id, vehicle_db_mapping)
+            # Update video stats
+            self.database.update_video_stats(
+                video_id=video_id,
+                total_frames=processed_frames,
+                processing_time=total_time,
+            )
 
-        logger.success(f"Video {video_file.name} processed: video_id={video_id}")
+            logger.info(
+                f"Video processing complete: {processed_frames} frames in {total_time:.2f}s"
+            )
+            logger.success(f"Video {video_file.name} processed: video_id={video_id}")
 
-        return video_id.id
+        return video_id
 
     def _process_frame(
         self,
@@ -148,8 +158,7 @@ class FrameProcessor:
         frame_idx: int,
         timestamp: datetime,
         video_name: str,
-        vehicle_db_mapping: dict,
-        video_id: int | None,
+        video_id: int,
     ) -> None:
         """Process single frame.
 
@@ -158,7 +167,6 @@ class FrameProcessor:
             frame_idx: Frame index
             timestamp: Frame timestamp
             video_name: Video name for frame saving
-            vehicle_db_mapping: Mapping of track_id to vehicle_id
             video_id: Video database ID
         """
         if self.use_builtin_tracker:
@@ -174,7 +182,6 @@ class FrameProcessor:
                 Track(
                     track_id=det.track_id,
                     bbox=det.bbox,
-                    class_id=det.class_id,
                     confidence=det.confidence,
                 )
                 for det in detections
@@ -203,6 +210,36 @@ class FrameProcessor:
             logger.info(
                 f"Vehicle {track_id}: {old_status} → {new_status} at frame {frame_idx}"
             )
+
+        # Calculate Frame Statistics
+        parked_count = 0
+        moving_count = 0
+
+        # We only count ACTIVE vehicles visible in the current frame (from tracks)
+        # However, parking_analyzer maintains state even if detection missed for a few frames.
+        # But for 'how many cars now', we should look at active tracks or known states.
+        # Let's use the states of currently tracked vehicles.
+
+        active_states = []
+        for track in tracks:
+            state = self.parking_analyzer.get_vehicle_state(track.track_id)
+            if state:
+                active_states.append(state)
+                if state.status == "parked":
+                    parked_count += 1
+                else:
+                    moving_count += 1
+
+        total_count = len(tracks)
+
+        # Save State to DB
+        self.database.save_state(
+            video_id=video_id,
+            timestamp=timestamp,
+            parked_count=parked_count,
+            moving_count=moving_count,
+            total_count=total_count,
+        )
 
         if self.save_frames and len(tracks) > 0:
             save_start = time.time()
@@ -237,7 +274,7 @@ class FrameProcessor:
 
             cv2.rectangle(frame_copy, (x1, y1), (x2, y2), color, 2)
 
-            label = f"ID:{track.track_id}"
+            label = f"ID:{track.track_id} {track.confidence:.2f}"
             if state:
                 label += f" {state.status}"
 
@@ -246,7 +283,7 @@ class FrameProcessor:
                 label,
                 (x1, y1 - 10),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
+                0.8,
                 color,
                 2,
             )
@@ -256,39 +293,3 @@ class FrameProcessor:
             self.frames_dir / f"{video_name}_{timestamp_str}_frame_{frame_idx:06d}.jpg"
         )
         cv2.imwrite(str(output_path), frame_copy)
-
-    def _save_vehicles_to_db(self, video_id: int, vehicle_db_mapping: dict) -> None:
-        """Save all vehicles to database after processing.
-
-        Args:
-            video_id: Video database ID
-            vehicle_db_mapping: Mapping to populate
-        """
-        for track_id, state in self.parking_analyzer.vehicle_states.items():
-            vehicle = self.database.create_vehicle(
-                video_id=video_id,
-                track_id=track_id,
-                first_seen=state.first_seen,
-                last_seen=state.last_seen,
-                vehicle_class=self.detector.get_class_name(state.class_id),
-                status=state.status,
-            )
-
-            vehicle_db_mapping[track_id] = vehicle.id
-
-            for idx, (bbox, timestamp) in enumerate(
-                zip(
-                    state.bbox_history,
-                    [state.first_seen] * len(state.bbox_history),
-                    strict=False,
-                )
-            ):
-                self.database.add_position(
-                    vehicle_id=vehicle.id,
-                    timestamp=timestamp,
-                    frame_idx=idx,
-                    bbox=bbox,
-                    confidence=0.9,
-                )
-
-        logger.info(f"Saved {len(vehicle_db_mapping)} vehicles to database")
