@@ -54,7 +54,7 @@ class StorageConfig(BaseModel):
     """Storage configuration."""
 
     database_path: str = "./data/parking.db"
-    save_frames: bool = True
+    save_frames: bool = False
     frames_dir: str = "./data/frames"
 
 

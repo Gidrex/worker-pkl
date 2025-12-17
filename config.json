@@ -26,12 +26,12 @@
   },
   "storage": {
     "database_path": "./data/parking.db",
-    "save_frames": true,
+    "save_frames": false,
     "frames_dir": "./data/frames"
   },
   "api": {
     "enabled": true,
     "host": "0.0.0.0",
-    "port": 8080
+    "port": 8844
   }
 }
