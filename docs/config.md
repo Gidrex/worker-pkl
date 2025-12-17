@@ -256,7 +256,7 @@ JSON-RPC API server settings.
 "api": {
   "enabled": true,
   "host": "0.0.0.0",
-  "port": 8080
+  "port": 8844
 }
 ```
 
@@ -272,7 +272,7 @@ JSON-RPC API server settings.
   - `"127.0.0.1"`: Localhost only
 
 - **port** (int): TCP port for API server
-  - Default: `8080`
+  - Default: `8844`
   - Range: `1` to `65535`
   - Avoid: `80` (HTTP), `443` (HTTPS), `22` (SSH)
 

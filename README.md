@@ -1,35 +1,40 @@
-# Parking Vehicle Detection System
+# Система Обнаружения Транспортных Средств на Парковке
 
-Production-ready vehicle detection and parking analysis system using YOLO models with BotSORT tracking.
+Готовая к эксплуатации система обнаружения транспортных средств и анализа парковки, использующая модели YOLO и трекинг BotSORT.
 
-## Documentation
+## Документация
 
-- [User Guide / Virtual RTSP Server](docs/usage.md)
-- [Configuration](md/config.md)
+Вся документация находится в директории `docs/`:
 
-## Features
+- **[Как Использовать](docs/usage.md)**
+- **[Конфигурация](docs/config.md)**
+- **[Руководство Разработчика](docs/dev.md)**
 
-- **Vehicle Detection**: YOLOv11/v12 detection (car, motorcycle, bus, truck)
-- **Advanced Tracking**: BotSORT/ByteTrack for stable vehicle identification
-- **Parking Analysis**: Dual-threshold detection using IoU + centroid
-- **Database Storage**: SQLite for vehicle metadata and position history
-- **JSON-RPC API**: Query detection results via REST API
-- **Detailed Logging**: Multi-level logging with loguru
-- **Frame Export**: Save annotated frames with bounding boxes
+## Возможности
 
-## Process Video
+- **Обнаружение транспорта**: Использование YOLOv12 (автомобили, мотоциклы, автобусы, грузовики)
+- **Продвинутый трекинг**: BotSORT/ByteTrack для стабильной идентификации объектов
+- **Анализ парковки**: Двойной порог обнаружения (IoU + центроиды)
+- **База данных**: SQLite для хранения метаданных и истории позиций
+- **JSON-RPC API**: REST API для запроса результатов обнаружения
+- **Подробное логирование**: Многоуровневое логирование с помощью loguru
+- **Экспорт кадров**: Сохранение аннотированных кадров с bounding box'ами (DEBUG уровень)
+
+## Запуск и Использование
+
+### Обработка видео
 
 ```bash
 just run ./videos/video.avi
 ```
 
-### Start API Server (Optional)
+### Запуск API Сервера (Опционально)
 
 ```bash
-uvicorn api.server:create_app --host 0.0.0.0 --port 8080
+uvicorn api.server:create_app --host 0.0.0.0 --port 8844
 ```
 
-### Processing Pipeline
+### Пайплайн Обработки
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -38,16 +43,16 @@ uvicorn api.server:create_app --host 0.0.0.0 --port 8080
                │
                v
 ┌─────────────────────────────────────────────────────────┐
-│               FrameProcessor                            │
+│               Обработчик Кадров (FrameProcessor)        │
 │  ┌──────────────────┐  ┌────────────────┐               │
-│  │ Detector+Tracker │→ │ ParkingAnalyzer│→ Database     │
-│  │   (BotSORT)      │  │  (IoU+Centroid)│               │
+│  │ Детектор+Трекер  │→ │ Анализ Парковки│→ База Данных  │
+│  │   (BotSORT)      │  │ (IoU+Centroid) │               │
 │  └──────────────────┘  └────────────────┘               │
 └─────────────────────────────────────────────────────────┘
                │
                v
 ┌─────────────────────────────────────────────────────────┐
-│              SQLite Database                            │
+│              База Данных (SQLite)                       │
 │    ProcessedVideo → Vehicle → VehiclePosition           │
 └─────────────────────────────────────────────────────────┘
                │
@@ -58,9 +63,9 @@ uvicorn api.server:create_app --host 0.0.0.0 --port 8080
 └─────────────────────────────────────────────────────────┘
 ```
 
-## Logging
+## Логирование
 
-Set log level in `config.json`:
+Уровень логирования задается в `config.json`:
 
 ```json
 {
@@ -70,28 +75,21 @@ Set log level in `config.json`:
 }
 ```
 
-Example output:
+Пример вывода:
 
 ```
 2025-12-07 12:28:25 | INFO     | core.parking_analyzer:152 - Vehicle 260 status changed: moving → parked
 2025-12-07 12:28:25 | INFO     | core.frame_processor:210 - Vehicle 260: moving → parked at frame 39720
 2025-12-07 12:28:25 | DEBUG    | core.frame_processor:248 - Frame 39720: saved with boxes in 0.016s
-2025-12-07 12:28:25 | DEBUG    | core.frame_processor:177 - Frame 39840: detected+tracked 33 vehicles in 0.064s
-2025-12-07 12:28:25 | DEBUG    | core.frame_processor:248 - Frame 39840: saved with boxes in 0.015s
-2025-12-07 12:28:25 | DEBUG    | core.frame_processor:177 - Frame 39960: detected+tracked 33 vehicles in 0.062s
 ```
 
-## Development
+## Производительность
 
-```bash
-# Run QA (format + lint) before every commit
-just qa
-```
-
-## Performance
-
-Tested on NVIDIA RTX 3060 (laptop):
-- Model: pretrained YOLOv12x
-- Resolution: 1920x1080
-- Processing: ~15 FPS (frame_interval=2)
-- Tracking: BotSORT
+Протестировано на NVIDIA RTX 3060 (ноутбук):
+- Модель: предобученная YOLOv12x
+- Разрешение: 1920x1080
+- Скорость обработки: ~15 FPS (frame_interval=2)
+- Нагрузка:
+  - CPU #TODO
+  - GPU #TODO
+  - RAM #TODO
