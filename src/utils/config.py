@@ -63,7 +63,7 @@ class APIConfig(BaseModel):
 
     enabled: bool = True
     host: str = "0.0.0.0"
-    port: int = Field(default=8080, ge=1, le=65535)
+    port: int = Field(default=8844, ge=1, le=65535)
 
 
 class Config(BaseModel):
