@@ -3,9 +3,9 @@
 **TLDR**
 
 Рецепт `just benchmark <video path>` запускает benchmark по определённому video(должно так же с url RTSP сервера работать).
-Скрипт `scripts/bench_metrics.sh` предоставляет дашборд в реальном времени и итоговый отчёт об использовании системных ресурсов(CPU, RAM, GPU и VRAM) для Python процесса.
+Скрипт [bench_metrics.sh](../scripts/bench_metrics.sh) предоставляет дашборд в реальном времени и итоговый отчёт об использовании системных ресурсов(CPU, RAM, GPU и VRAM) для Python процесса.
 Ваш report.md создайте в `benchmarks/<your username>/report.md` и в этой же директории переносите ваши `config_run<1,2,3...>.json`.
-(так же можете посмотреть как это сделал я в `benchmarks/gidrex/`)
+так же можете посмотреть как это сделал я в - **[benchmarks/gidrex/report.md](../benchmarks/gidrex/report.md)**
 
 `report.md`
 ```md
