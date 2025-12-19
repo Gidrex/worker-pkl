@@ -7,10 +7,12 @@
   "model": {
     "path": "models/best.pt",
     "device": "cuda:0",
-    "conf_threshold": 0.25
+    "conf_threshold": 0.25,
+    "imgsz": 640,
+    "augment": false
   },
   "processing": {
-    "frame_interval": 120,
+    "frame_interval": 5,
     "batch_size": 4,
     "max_workers": 4
   },
@@ -22,11 +24,11 @@
   "parking": {
     "iou_threshold": 0.3,
     "centroid_threshold": 30.0,
-    "stationary_frames": 5
+    "stationary_frames": 30
   },
   "storage": {
     "database_path": "./data/parking.db",
-    "save_frames": false,
+    "save_frames": true,
     "frames_dir": "./data/frames"
   },
   "api": {
