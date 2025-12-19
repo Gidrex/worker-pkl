@@ -28,5 +28,9 @@ format:
 cleanup:
     rm -rf data/ temp/
 
+# Benchmark run
+benchmark VIDEO: cleanup
+    run {{VIDEO}}
+
 # Run quality assurance checks (format then lint)
 qa: format lint
