@@ -21,6 +21,10 @@ class ModelConfig(BaseModel):
     path: str = "./models/yolo12x.pt"
     device: str = "cuda:0"
     conf_threshold: float = Field(default=0.3, ge=0.0, le=1.0)
+    imgsz: int = Field(
+        default=1280, ge=640, le=3840, description="Inference resolution"
+    )
+    augment: bool = Field(default=False, description="Enable Test Time Augmentation")
 
 
 class ProcessingConfig(BaseModel):

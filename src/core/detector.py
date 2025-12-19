@@ -20,15 +20,26 @@ class Detection:
 class VehicleDetector:
     """YOLO model wrapper for vehicle detection."""
 
-    def __init__(self, model_path: str, device: str, conf_threshold: float):
+    def __init__(
+        self,
+        model_path: str,
+        device: str,
+        conf_threshold: float,
+        imgsz: int = 640,
+        augment: bool = False,
+    ):
         """Initialize detector.
 
         Args:
             model_path: Path to YOLO model
             device: Device for inference (cuda:0, cpu, etc.)
             conf_threshold: Confidence threshold
+            imgsz: Inference resolution
+            augment: Enable TTA
         """
-        logger.info(f"Loading YOLO model: {model_path}")
+        logger.info(
+            f"Loading YOLO model: {model_path} (imgsz={imgsz}, augment={augment})"
+        )
 
         model_file = Path(model_path)
         if not model_file.exists():
@@ -39,6 +50,8 @@ class VehicleDetector:
         self.model = YOLO(model_path)
         self.device = device
         self.conf_threshold = conf_threshold
+        self.imgsz = imgsz
+        self.augment = augment
 
         logger.success(f"Model loaded on device: {device}")
 
@@ -55,6 +68,8 @@ class VehicleDetector:
             source=frame,
             conf=self.conf_threshold,
             device=self.device,
+            imgsz=self.imgsz,
+            augment=self.augment,
             verbose=False,
         )
 
@@ -91,6 +106,8 @@ class VehicleDetector:
             source=frame,
             conf=self.conf_threshold,
             device=self.device,
+            imgsz=self.imgsz,
+            augment=self.augment,
             tracker=tracker,
             verbose=False,
             persist=True,

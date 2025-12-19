@@ -36,6 +36,8 @@ class FrameProcessor:
             model_path=config.model.path,
             device=config.model.device,
             conf_threshold=config.model.conf_threshold,
+            imgsz=config.model.imgsz,
+            augment=config.model.augment,
         )
         elapsed = time.time() - start
         logger.info(f"Model loaded in {elapsed:.2f}s")
@@ -76,7 +78,7 @@ class FrameProcessor:
         Returns:
             Video ID in database
         """
-        is_url = str(video_path).lower().startswith(('rtsp://', 'http://', 'https://'))
+        is_url = str(video_path).lower().startswith(("rtsp://", "http://", "https://"))
         video_file = Path(video_path)
 
         if not is_url and not video_file.exists():
@@ -85,8 +87,8 @@ class FrameProcessor:
 
         video_name = "stream" if is_url else video_file.name
         if is_url:
-             # Generate a timestamp-based name for streams to ensure uniqueness
-             video_name = f"stream_{int(time.time())}"
+            # Generate a timestamp-based name for streams to ensure uniqueness
+            video_name = f"stream_{int(time.time())}"
 
         logger.info(f"Processing video source: {video_name}")
 
@@ -97,11 +99,11 @@ class FrameProcessor:
 
         fps = cap.get(cv2.CAP_PROP_FPS)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        
+
         # For streams, total_frames might be garbage or -1
         if total_frames <= 0:
-             total_frames = -1
-        
+            total_frames = -1
+
         duration = total_frames / fps if fps > 0 and total_frames > 0 else 0
 
         logger.info(
@@ -120,33 +122,37 @@ class FrameProcessor:
         start_time = time.time()
         processed_frames = 0
         frame_idx = 0
-        
+
         # Retry mechanism for streams
         max_retries = 50
         retry_count = 0
-        
+
         try:
             while True:
                 ret, frame = cap.read()
-                
+
                 if not ret:
                     if is_url:
                         retry_count += 1
-                        if retry_count % 10 == 0:  # Log every 10th failure to avoid spam
-                             logger.warning(f"Failed to read frame from stream (attempt {retry_count}/{max_retries})")
-                        
+                        if (
+                            retry_count % 10 == 0
+                        ):  # Log every 10th failure to avoid spam
+                            logger.warning(
+                                f"Failed to read frame from stream (attempt {retry_count}/{max_retries})"
+                            )
+
                         if retry_count > max_retries:
                             logger.error("Max retries exceeded for stream. Exiting.")
                             break
-                        
+
                         time.sleep(0.1)  # Wait briefly before retrying
                         continue
                     else:
                         break  # End of file
-                
+
                 # Reset retry count on successful read
                 retry_count = 0
-                
+
                 # Skip frames if needed to match frame_interval
                 if frame_idx % self.frame_interval != 0:
                     frame_idx += 1
