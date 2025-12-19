@@ -12,24 +12,24 @@ _default:
 @run VIDEO:
     uv run -m src.main process {{VIDEO}}
 
-# Run ruff linter to check code style and quality
-@lint:
-    uv run ruff check .
+# Benchmark run (cleanup + run)
+@benchmark VIDEO: cleanup (run VIDEO)
 
-# Run ruff linter to check code style and quality
-@lint-fix:
-    uv run ruff check --fix .
+# Run quality assurance checks (format then lint)
+@qa: format lint
 
 # Auto-format code using ruff formatter
 @format:
     uv run ruff format .
 
+# Run ruff linter to check code style and quality
+@lint:
+    uv run ruff check .
+
+# Run ruff linter to check code style and quality (auto-fix)
+@lint-fix:
+    uv run ruff check --fix .
+
 # Delete all temp files
 @cleanup:
     rm -rf data/ temp/
-
-# Benchmark run
-@benchmark VIDEO: cleanup (run VIDEO)
-
-# Run quality assurance checks (format then lint)
-@qa: format lint
