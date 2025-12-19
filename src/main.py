@@ -30,11 +30,13 @@ def process_video_command(args: argparse.Namespace) -> int:
     processor = FrameProcessor(config, database)
 
     video_path = Path(args.video)
-    if not video_path.exists():
+    is_url = str(args.video).lower().startswith(('rtsp://', 'http://', 'https://'))
+    
+    if not is_url and not video_path.exists():
         logger.error(f"Video file not found: {args.video}")
         return 1
 
-    video_id = processor.process_video(str(video_path))
+    video_id = processor.process_video(str(args.video))
 
     logger.success(f"Video processed successfully: video_id={video_id}")
 
