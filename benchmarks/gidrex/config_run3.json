@@ -1,0 +1,39 @@
+{
+  "logging": {
+    "level": "DEBUG",
+    "format": "{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}",
+    "rotation": "100 MB"
+  },
+  "model": {
+    "path": "models/best.pt",
+    "device": "cuda:0",
+    "conf_threshold": 0.30,
+    "imgsz": 960,
+    "augment": false
+  },
+  "processing": {
+    "frame_interval": 10,
+    "batch_size": 4,
+    "max_workers": 4
+  },
+  "tracking": {
+    "tracker": "botsort.yaml",
+    "min_hits": 2,
+    "max_age": 30
+  },
+  "parking": {
+    "iou_threshold": 0.3,
+    "centroid_threshold": 30.0,
+    "stationary_frames": 15
+  },
+  "storage": {
+    "database_path": "./data/parking.db",
+    "save_frames": true,
+    "frames_dir": "./data/frames"
+  },
+  "api": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8844
+  }
+}
