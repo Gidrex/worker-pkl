@@ -24,5 +24,9 @@ lint-fix:
 format:
     uv run ruff format .
 
+# Delete all temp files
+cleanup:
+    rm -rf data/ temp/
+
 # Run quality assurance checks (format then lint)
 qa: format lint
