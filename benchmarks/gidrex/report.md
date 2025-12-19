@@ -13,8 +13,6 @@
 
 ### Run 1: Optimized Configuration (High Load)
 
-**Date:** 2025-12-19
-
 #### Configuration
 | Parameter | Value | Description |
 | :--- | :--- | :--- |
@@ -39,8 +37,6 @@ The changes resulted in a massive improvement in detection quality and tracking 
 *   **Performance:** The system fully utilizes the GPU (100%), which is expected for `imgsz: 1280`. To reduce load, `imgsz` could be lowered to 640 or 1024, likely with minimal loss in accuracy for larger vehicles.
 
 ### Run 2: Performance Mode (640p, BEST)
-
-**Date:** 2025-12-19
 
 #### Configuration
 | Parameter | Value | Description |
@@ -68,8 +64,6 @@ Reducing the inference size to 640x640 had a dramatic impact on performance, mak
 *   **Recommendation:** Since detection quality is visually comparable to the high-res run for this use case, **Run 2 (640p) is the recommended configuration** for maximizing resource efficiency.
 
 ### Run 3: Balanced Mode (The "Golden Mean" and its not bad)
-
-**Date:** 2025-12-19
 
 #### Configuration
 | Parameter | Value | Description |
