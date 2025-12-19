@@ -18,7 +18,7 @@ Complete reference for `config.json` settings.
 
 ## Logging Configuration
 
-Controls logging behavior and output format.
+Controls logging behavior and output format, powered by **[Loguru](https://loguru.readthedocs.io/)**.
 
 ```json
 "logging": {
@@ -30,25 +30,22 @@ Controls logging behavior and output format.
 
 ### Parameters
 
-- **level** (string): Minimum log level to display
+- **level** (string): Minimum log level to display. Corresponds to `loguru` [severity levels](https://loguru.readthedocs.io/en/stable/api/logger.html#levels).
   - Values: `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`
   - Default: `INFO`
   - `DEBUG`: Shows frame-by-frame timing, all detections
   - `INFO`: Processing start/end, status changes
-  - `WARNING`: Low confidence detections, tracking issues
-  - `ERROR`: Critical failures
 
-- **format** (string): Log message format using loguru syntax
+- **format** (string): Log message format using **[Loguru syntax](https://loguru.readthedocs.io/en/stable/api/logger.html#record)**.
   - Default: `"{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{line} - {message}"`
   - Variables: `{time}`, `{level}`, `{name}`, `{line}`, `{message}`
 
-- **rotation** (string): Log file rotation size
+- **rotation** (string): Log file rotation condition, handled by **[Loguru rotation](https://loguru.readthedocs.io/en/stable/api/logger.html#rotation)**.
   - Default: `"100 MB"`
-  - Examples: `"10 MB"`, `"500 KB"`, `"1 GB"`
 
 ## Model Configuration
 
-YOLO model settings for vehicle detection.
+Settings for the vehicle detection model, utilizing **[Ultralytics YOLO](https://docs.ultralytics.com/)**.
 
 ```json
 "model": {
@@ -61,39 +58,25 @@ YOLO model settings for vehicle detection.
 
 ### Parameters
 
-- **path** (string): Path or name of YOLO model
+- **path** (string): Path or name of the YOLO model file. Loaded via `ultralytics.YOLO()`.
   - Default: `"yolo12x.pt"`
-  - If file doesn't exist locally, ultralytics auto-downloads it
+  - See [YOLO Models](https://docs.ultralytics.com/models/).
   - Supported: `yolo11x.pt`, `yolo12x.pt`, custom trained models
-  - Larger models (x) = slower but more accurate
-  - Smaller models (n, s, m) = faster but less accurate
 
-- **device** (string): Compute device for inference
+- **device** (string): Compute device for inference, passed to **[PyTorch](https://pytorch.org/docs/stable/tensor_attributes.html#torch.device)**.
   - Default: `"cuda:0"`
-  - `"cuda:0"`: First GPU
-  - `"cuda:1"`: Second GPU
-  - `"cpu"`: CPU (much slower)
-  - `"mps"`: Apple M1/M2 GPU (macOS)
+  - Options: `"cpu"`, `"cuda:N"`, `"mps"` (Apple Silicon)
 
-- **conf_threshold** (float): Minimum confidence for detections
+- **conf_threshold** (float): Minimum confidence score for detections. Maps to the `conf` argument in YOLO [predict mode](https://docs.ultralytics.com/modes/predict/#inference-arguments).
   - Default: `0.3`
-  - Range: `0.0` to `1.0`
-  - Lower = more detections but more false positives
-  - Higher = fewer detections but more accurate
-  - Recommended: `0.25-0.4` for vehicle detection
+  - Recommended: `0.25-0.4`
 
-- **classes** (array[int]): COCO class IDs to detect
+- **classes** (array[int]): List of **[COCO Dataset](https://cocodataset.org/#explore)** class IDs to filter. Maps to the `classes` argument in YOLO predict.
   - Default: `[2, 3, 5, 7]` (car, motorcycle, bus, truck)
-  - COCO IDs:
-    - `2`: car
-    - `3`: motorcycle
-    - `5`: bus
-    - `7`: truck
-  - Only specified classes will be detected
 
 ## Processing Configuration
 
-Frame processing and parallelization settings.
+Settings for the frame processing pipeline implemented in `src.core.frame_processor`.
 
 ```json
 "processing": {
@@ -105,30 +88,19 @@ Frame processing and parallelization settings.
 
 ### Parameters
 
-- **frame_interval** (int): Process every N-th frame
+- **frame_interval** (int): Process every N-th frame to control FPS processing speed.
   - Default: `3`
-  - Range: `1` to `∞`
-  - Formula: `frames_per_second = video_fps / frame_interval`
-  - Examples (for 60 FPS video):
-    - `1` = 60 frames/sec (no skip, very slow)
-    - `2` = 30 frames/sec
-    - `3` = 20 frames/sec
-    - `5` = 12 frames/sec
-    - `12` = 5 frames/sec (recommended for 60 FPS)
-    - `30` = 2 frames/sec
-  - Higher = faster processing but may miss fast-moving vehicles
+  - Formula: `processed_fps = video_fps / frame_interval`
 
-- **batch_size** (int): Number of frames to process in parallel (future use)
+- **batch_size** (int): (Future Use) For batch inference.
   - Default: `8`
-  - Currently not implemented (reserved for future batch processing)
 
-- **max_workers** (int): Maximum parallel workers (future use)
+- **max_workers** (int): (Future Use) For `concurrent.futures` multiprocessing.
   - Default: `4`
-  - Currently not implemented (reserved for future multiprocessing)
 
 ## Tracking Configuration
 
-Vehicle tracking algorithm settings.
+Settings for Multi-Object Tracking (MOT), supported by **[Ultralytics Tracking](https://docs.ultralytics.com/modes/track/)**.
 
 ```json
 "tracking": {
@@ -140,32 +112,21 @@ Vehicle tracking algorithm settings.
 
 ### Parameters
 
-- **tracker** (string): Tracking algorithm to use
+- **tracker** (string): The tracker configuration file or name.
   - Default: `"botsort.yaml"`
   - Options:
-    - `"bytetrack.yaml"`: Fast, simple IoU-based tracking
-    - `"botsort.yaml"`: Advanced, uses appearance + motion (recommended)
-  - BotSORT is more robust for occluded/crowded scenes
-  - ByteTrack is faster but less accurate with ID switches
+    - `"botsort.yaml"`: **[BotSORT](https://arxiv.org/abs/2206.14651)** (Robust, appearance-based).
+    - `"bytetrack.yaml"`: **[ByteTrack](https://arxiv.org/abs/2110.06864)** (Fast, IoU-based).
 
-- **min_hits** (int): Minimum detections before assigning track ID
+- **min_hits** (int): Minimum number of consecutive detections required to initialize a track (handled by the tracker implementation).
   - Default: `3`
-  - Range: `1` to `∞`
-  - Higher = reduces false tracks but may miss short appearances
-  - Lower = more tracks but more false positives
-  - Recommended: `3-5`
 
-- **max_age** (int): Frames to keep track alive without detection
+- **max_age** (int): Maximum number of frames to keep a track alive without detection (buffer for occlusion).
   - Default: `30`
-  - Range: `1` to `∞`
-  - Higher = maintains tracks longer during occlusion
-  - Lower = removes disappeared vehicles faster
-  - Formula: `seconds = max_age * frame_interval / video_fps`
-  - Example: `30 * 12 / 60 = 6 seconds` for 60 FPS video with interval=12
 
 ## Parking Configuration
 
-Parking detection algorithm parameters.
+Parameters for the custom parking analysis logic (`src.core.parking_analyzer`), utilizing **[IoU](https://en.wikipedia.org/wiki/Jaccard_index)** and centroid distance.
 
 ```json
 "parking": {
@@ -177,49 +138,20 @@ Parking detection algorithm parameters.
 
 ### Parameters
 
-- **iou_threshold** (float): Minimum IoU overlap between consecutive frames
+- **iou_threshold** (float): Minimum **[Intersection over Union](https://en.wikipedia.org/wiki/Jaccard_index)** overlap between current and previous box to consider it "stationary".
   - Default: `0.3`
   - Range: `0.0` to `1.0`
-  - Formula: `IoU = intersection_area / union_area`
-  - Higher (0.7-0.9) = very strict, vehicle must be perfectly still
-  - Lower (0.2-0.4) = lenient, allows small movements
-  - Recommended: `0.3` (tolerates detection variance)
-  - Too high = parked vehicles marked as moving due to bbox jitter
-  - Too low = moving vehicles marked as parked
 
-- **centroid_threshold** (float): Maximum centroid movement in pixels
+- **centroid_threshold** (float): Maximum Euclidean distance (in pixels) the box center is allowed to move to be considered "stationary".
   - Default: `30.0`
-  - Range: `0.0` to `∞`
-  - Centroid = center point of bounding box `((x1+x2)/2, (y1+y2)/2)`
-  - Higher = allows more movement before marking as "moving"
-  - Lower = stricter parking detection
-  - Recommended: `20-40` pixels for 1920x1080 video
   - Scale with resolution: `threshold_pixels ≈ width / 64`
 
-- **stationary_frames** (int): Consecutive frames vehicle must be stationary
+- **stationary_frames** (int): Number of consecutive frames satisfying the stationary condition required to change status to `parked`.
   - Default: `5`
-  - Range: `1` to `∞`
-  - Formula: `time_seconds = stationary_frames * frame_interval / video_fps`
-  - Examples (60 FPS, interval=12):
-    - `5` frames = 1 second
-    - `10` frames = 2 seconds
-    - `25` frames = 5 seconds
-  - Lower = faster parking detection but more false positives
-  - Higher = more accurate but slower to detect parked vehicles
-  - Recommended: `5-10` frames
-
-### Parking Detection Algorithm
-
-Vehicle marked as **parked** when BOTH conditions met for N consecutive frames:
-
-1. **IoU Check**: `compute_iou(current_bbox, previous_bbox) >= iou_threshold`
-2. **Centroid Check**: `distance(current_centroid, previous_centroid) <= centroid_threshold`
-
-If either condition fails, counter resets to 0.
 
 ## Storage Configuration
 
-Database and frame saving settings.
+Settings for persistence using **[SQLite](https://www.sqlite.org/)** and file storage.
 
 ```json
 "storage": {
@@ -231,26 +163,18 @@ Database and frame saving settings.
 
 ### Parameters
 
-- **database_path** (string): Path to SQLite database file
+- **database_path** (string): Filesystem path for the SQLite database.
   - Default: `"./data/parking.db"`
-  - File created automatically if doesn't exist
-  - Stores: videos, vehicles, positions
 
-- **save_frames** (boolean): Save annotated frames to disk
+- **save_frames** (boolean): Toggle saving of debug frames with drawn bounding boxes using **[OpenCV](https://opencv.org/)**.
   - Default: `true`
-  - `true`: Saves frames with bounding boxes
-  - `false`: No frames saved (faster, less disk usage)
-  - Frames saved as: `{video_name}_frame_{frame_idx:06d}.jpg`
 
-- **frames_dir** (string): Directory for saved frames
+- **frames_dir** (string): Directory path for saving processed frames.
   - Default: `"./data/frames"`
-  - Created automatically if doesn't exist
-  - Warning: Can use significant disk space
-  - Estimate: `~200 KB/frame × processed_frames`
 
 ## API Configuration
 
-JSON-RPC API server settings.
+Settings for the **[FastAPI](https://fastapi.tiangolo.com/)** server.
 
 ```json
 "api": {
@@ -262,19 +186,14 @@ JSON-RPC API server settings.
 
 ### Parameters
 
-- **enabled** (boolean): Enable JSON-RPC API
+- **enabled** (boolean): Feature flag for the API.
   - Default: `true`
-  - Currently informational (server must be started manually)
 
-- **host** (string): Bind address for API server
-  - Default: `"0.0.0.0"` (all interfaces)
-  - `"0.0.0.0"`: Accessible from network
-  - `"127.0.0.1"`: Localhost only
+- **host** (string): Bind host for **[Uvicorn](https://www.uvicorn.org/)**.
+  - Default: `"0.0.0.0"`
 
-- **port** (int): TCP port for API server
+- **port** (int): Bind port for **[Uvicorn](https://www.uvicorn.org/)**.
   - Default: `8844`
-  - Range: `1` to `65535`
-  - Avoid: `80` (HTTP), `443` (HTTPS), `22` (SSH)
 
 ## Example Configurations
 
@@ -322,29 +241,3 @@ JSON-RPC API server settings.
   }
 }
 ```
-
-## Performance Tuning
-
-### Increase Speed
-- ↑ `frame_interval` (process fewer frames)
-- ↓ `conf_threshold` (detect less strictly)
-- Use `bytetrack.yaml` instead of `botsort.yaml`
-- Use smaller YOLO model (yolo11n.pt instead of yolo12x.pt)
-- Set `save_frames: false`
-
-### Increase Accuracy
-- ↓ `frame_interval` (process more frames)
-- ↑ `conf_threshold` (detect more strictly)
-- Use `botsort.yaml` for better tracking
-- ↑ `stationary_frames` (stricter parking detection)
-- ↑ `min_hits` (reduce false tracks)
-
-### Reduce False Parking Detections
-- ↑ `iou_threshold` (0.5-0.7)
-- ↓ `centroid_threshold` (15-25)
-- ↑ `stationary_frames` (10-20)
-
-### Detect Parking Faster
-- ↓ `stationary_frames` (3-5)
-- ↓ `iou_threshold` (0.2-0.4)
-- ↑ `centroid_threshold` (30-50)
