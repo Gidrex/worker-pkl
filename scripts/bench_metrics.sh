@@ -60,8 +60,7 @@ print_summary() {
             printf "VRAM (Pr):  Avg: %.0f MiB | Max: %.0f MiB\n", sum_vram/count, max_vram
         }
     }' "$METRICS_LOG"
-    
-    # echo "=========================================="
+
     rm -f "$METRICS_LOG"
 }
 
