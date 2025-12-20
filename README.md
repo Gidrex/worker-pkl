@@ -88,9 +88,11 @@ uvicorn api.server:create_app --host 0.0.0.0 --port 8844
 
 Протестировано на NVIDIA RTX 3060 (ноутбук):
 - Модель: предобученная YOLOv12x
-- Разрешение: 1920x1080
-- Скорость обработки: ~15 FPS (frame_interval=2)
+- Разрешение: 1920x1080/640x640 (I/O)
+- Скорость обработки: ~12 FPS (frame_interval=5)
 - Нагрузка:
-  - CPU #TODO
-  - GPU #TODO
-  - RAM #TODO
+*  **GPU:** 33%
+*  **VRAM:** 1.1 GB
+*  **RAM:** 1.6 GB
+*  **CPU:** 9%
+
