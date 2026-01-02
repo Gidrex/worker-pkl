@@ -7,7 +7,7 @@ from loguru import logger
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from src.storage.models import Base, ProcessedVideo, State
+from src.storage.models import Base, ProcessedVideo, State, Vehicle, VehiclePosition
 
 
 class Database:
@@ -102,3 +102,126 @@ class Database:
             )
             session.add(state)
             session.commit()
+
+    def upsert_vehicle(
+        self,
+        video_id: int,
+        track_id: int,
+        timestamp: datetime,
+        status: str = "unknown",
+        vehicle_class: str = "car",
+    ) -> int:
+        """Create or update vehicle record.
+
+        Args:
+            video_id: Video ID
+            track_id: Tracker ID
+            timestamp: Current timestamp (for last_seen)
+            status: Current vehicle status
+            vehicle_class: Vehicle class
+
+        Returns:
+            Database ID of the vehicle
+        """
+        with self.Session() as session:
+            vehicle = (
+                session.query(Vehicle)
+                .filter_by(video_id=video_id, track_id=track_id)
+                .first()
+            )
+
+            if vehicle:
+                vehicle.last_seen = timestamp
+                vehicle.status = status
+            else:
+                vehicle = Vehicle(
+                    video_id=video_id,
+                    track_id=track_id,
+                    first_seen=timestamp,
+                    last_seen=timestamp,
+                    status=status,
+                    vehicle_class=vehicle_class,
+                )
+                session.add(vehicle)
+
+            session.commit()
+            session.refresh(vehicle)
+            return vehicle.id
+
+    def save_vehicle_position(
+        self,
+        vehicle_id: int,
+        frame_idx: int,
+        timestamp: datetime,
+        bbox: tuple[float, float, float, float],
+        confidence: float,
+        status: str,
+    ) -> None:
+        """Save vehicle position history.
+
+        Args:
+            vehicle_id: Database vehicle ID
+            frame_idx: Frame index
+            timestamp: Frame timestamp
+            bbox: Bounding box (x1, y1, x2, y2)
+            confidence: Detection confidence
+            status: Vehicle status at this frame
+        """
+        with self.Session() as session:
+            x1, y1, x2, y2 = bbox
+            pos = VehiclePosition(
+                vehicle_id=vehicle_id,
+                frame_idx=frame_idx,
+                timestamp=timestamp,
+                bbox_x1=x1,
+                bbox_y1=y1,
+                bbox_x2=x2,
+                bbox_y2=y2,
+                confidence=confidence,
+                status=status,
+            )
+            session.add(pos)
+            session.commit()
+
+    def get_vehicles(
+        self,
+        video_id: int,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> list[Vehicle]:
+        """Get vehicles for a video with optional time filtering.
+
+        Args:
+            video_id: Video ID
+            start_time: Filter by last_seen >= start_time
+            end_time: Filter by first_seen <= end_time
+
+        Returns:
+            List of vehicles
+        """
+        with self.Session() as session:
+            query = session.query(Vehicle).filter(Vehicle.video_id == video_id)
+
+            if start_time:
+                query = query.filter(Vehicle.last_seen >= start_time)
+            if end_time:
+                query = query.filter(Vehicle.first_seen <= end_time)
+
+            return query.all()
+
+    def get_vehicle_history(self, vehicle_id: int) -> list[VehiclePosition]:
+        """Get position history for a vehicle.
+
+        Args:
+            vehicle_id: Vehicle ID
+
+        Returns:
+            List of positions ordered by timestamp
+        """
+        with self.Session() as session:
+            return (
+                session.query(VehiclePosition)
+                .filter(VehiclePosition.vehicle_id == vehicle_id)
+                .order_by(VehiclePosition.timestamp)
+                .all()
+            )
