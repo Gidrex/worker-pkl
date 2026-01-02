@@ -10,7 +10,6 @@ from loguru import logger
 
 from src.core.detector import VehicleDetector
 from src.core.parking_analyzer import ParkingAnalyzer
-from src.core.reid import VehicleReID
 from src.core.tracker import Track, VehicleTracker
 from src.storage.database import Database
 from src.utils.config import Config
@@ -28,6 +27,7 @@ class FrameProcessor:
         """
         self.config = config
         self.database = database
+        self.vehicle_db_cache = {}  # Cache track_id -> vehicle_db_id
 
         logger.info("Initializing frame processor components...")
 
@@ -41,10 +41,6 @@ class FrameProcessor:
         )
         elapsed = time.time() - start
         logger.info(f"Model loaded in {elapsed:.2f}s")
-
-        # Initialize ReID
-        self.reid = VehicleReID(device=config.model.device)
-        self.vehicle_embeddings = {}  # track_id -> embedding (np.array)
 
         valid_trackers = ["bytetrack.yaml", "botsort.yaml"]
         self.use_builtin_tracker = config.tracking.tracker in valid_trackers
@@ -291,6 +287,32 @@ class FrameProcessor:
             moving_count=moving_count,
             total_count=total_count,
         )
+
+        # Save individual vehicle data
+        for track in tracks:
+            state = self.parking_analyzer.get_vehicle_state(track.track_id)
+            current_status = state.status if state else "unknown"
+
+            # Upsert vehicle to ensure it exists and update last_seen
+            # We use a cache to avoid unnecessary SELECTs if we know the ID,
+            # but we still need to update last_seen/status.
+            # For simplicity/robustness in this fix, we call upsert every time.
+            # (In a high-load system we would optimize this).
+            db_vehicle_id = self.database.upsert_vehicle(
+                video_id=video_id,
+                track_id=track.track_id,
+                timestamp=timestamp,
+                status=current_status,
+            )
+
+            self.database.save_vehicle_position(
+                vehicle_id=db_vehicle_id,
+                frame_idx=frame_idx,
+                timestamp=timestamp,
+                bbox=track.bbox,
+                confidence=track.confidence,
+                status=current_status,
+            )
 
         if self.save_frames and len(tracks) > 0:
             save_start = time.time()
