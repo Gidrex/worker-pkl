@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from pydantic import BaseModel
 
+from src.storage.database import Database
+from src.storage.models import ProcessedVideo
 from src.utils.config import Config, load_config
-from storage.database import Database
 
 
 class JSONRPCRequest(BaseModel):
@@ -157,8 +158,6 @@ class JSONRPCServer:
 
     async def _get_videos(self, request: JSONRPCRequest) -> JSONRPCResponse:
         """Get all processed videos."""
-        from storage.models import ProcessedVideo
-
         with self.database.Session() as session:
             videos = session.query(ProcessedVideo).all()
 
