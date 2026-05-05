@@ -8,7 +8,7 @@ from ultralytics import YOLO
 
 def train_model(
     data_path: str,
-    model_name: str = "yolo11x.pt",  # Using latest state-of-the-art
+    model_name: str = "yolo26s.pt",  # Using latest state-of-the-art
     epochs: int = 100,
     batch_size: int = 16,
     img_size: int = 640,
@@ -21,7 +21,7 @@ def train_model(
 
     Args:
         data_path: Path to dataset.yaml
-        model_name: Base model to start from (e.g., yolo11x.pt)
+        model_name: Base model to start from (e.g., yolo26s.pt)
         epochs: Number of training epochs
         batch_size: Batch size
         img_size: Image resolution
@@ -114,7 +114,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
     parser.add_argument("--batch", type=int, default=16, help="Batch size")
-    parser.add_argument("--model", type=str, default="yolo11x.pt", help="Base model")
+    parser.add_argument("--model", type=str, default="yolo26s.pt", help="Base model")
 
     args = parser.parse_args()
 

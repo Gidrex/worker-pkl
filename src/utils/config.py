@@ -18,7 +18,7 @@ class LoggingConfig(BaseModel):
 class ModelConfig(BaseModel):
     """YOLO model configuration."""
 
-    path: str = "./models/yolo12x.pt"
+    path: str = "yolo26s.pt"
     device: str = "cuda:0"
     conf_threshold: float = Field(default=0.3, ge=0.0, le=1.0)
     imgsz: int = Field(

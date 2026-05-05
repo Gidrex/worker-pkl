@@ -13,7 +13,7 @@
 
 ## Возможности
 
-- **Обнаружение транспорта**: Использование **[YOLOv12](https://docs.ultralytics.com/)** (автомобили, мотоциклы, автобусы, грузовики)
+- **Обнаружение транспорта**: Использование **[YOLO26](https://docs.ultralytics.com/models/yolo26/)** (автомобили, мотоциклы, автобусы, грузовики)
 - **Продвинутый трекинг**: **[BotSORT](https://docs.ultralytics.com/reference/trackers/bot_sort/)**/**[ByteTrack](https://docs.ultralytics.com/modes/track/)** для стабильной идентификации объектов
 - **Анализ парковки**: Двойной порог обнаружения (**[IoU](https://en.wikipedia.org/wiki/Jaccard_index)** + центроиды)
 - **База данных**: **[SQLite](https://www.sqlite.org/)** для хранения метаданных и истории позиций

@@ -49,7 +49,7 @@ Settings for the vehicle detection model, utilizing **[Ultralytics YOLO](https:/
 
 ```json
 "model": {
-  "path": "yolo12x.pt",
+  "path": "yolo26s.pt",
   "device": "cuda:0",
   "conf_threshold": 0.3,
   "classes": [2, 3, 5, 7]
@@ -59,9 +59,9 @@ Settings for the vehicle detection model, utilizing **[Ultralytics YOLO](https:/
 ### Parameters
 
 - **path** (string): Path or name of the YOLO model file. Loaded via `ultralytics.YOLO()`.
-  - Default: `"yolo12x.pt"`
+  - Default: `"yolo26s.pt"`
   - See [YOLO Models](https://docs.ultralytics.com/models/).
-  - Supported: `yolo11x.pt`, `yolo12x.pt`, custom trained models
+  - Supported: `yolo11x.pt`, `yolo12x.pt`, `yolo26s.pt`, custom trained models
 
 - **device** (string): Compute device for inference, passed to **[PyTorch](https://pytorch.org/docs/stable/tensor_attributes.html#torch.device)**.
   - Default: `"cuda:0"`

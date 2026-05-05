@@ -1,3 +1,7 @@
+# Python
+.venv
+__pycache__
+
 # Project specific
 data/
 logs/
@@ -12,3 +16,4 @@ datasets/parking_vehicles/visual
 
 # Keep model directory
 !models/.gitkeep
+/worker_pkl.egg-info
